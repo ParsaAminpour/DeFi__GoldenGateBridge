@@ -6,7 +6,7 @@ import { IERC20 } from "@openzeppelin/contracts/interfaces/IERC20.sol";
 // contract source of code: https://github.com/ethereum-optimism/optimism/blob/65ec61dde94ffa93342728d324fecf474d228e1f/packages/contracts-bedrock/contracts/L1/L1StandardBridge.sol#L196
 import { IL1StandardBridge } from "./interfaces/IStandardBridges.sol";
 import { IL2StandardBridge } from "./interfaces/IStandardBridges.sol";
-
+import { IGoldenBridgeTokenL2 } from "./interfaces/IGoldenBridgeTokenL2.sol";
 /*
  * @author ParsaAminpour
  * @notice use this contract when you want to transfer the ERC20 token over to the layer2.
@@ -20,7 +20,7 @@ contract GoldenBridgeL1 {
 
     mapping(address bridged_token_owner => uint256 bridged_amount) private map_amount_of_token_bridged_per_user;
 
-    address private immutable correspond_bridge_address;
+    address private immutable op_bridge_address;
     address private immutable l2_treasure_address;
     address private immutable l1Token;
     address private immutable l2Token;
@@ -29,27 +29,27 @@ contract GoldenBridgeL1 {
     event GoldenBridgeL1__TokenTransferedToL2(address indexed sender, address indexed token_address, uint256 indexed amount);
 
     constructor(address _bridge, address _l2_treasure_address, address _l1_token, address _l2_token) payable {
-        correspond_bridge_address = _bridge;
+        op_bridge_address = _bridge;
         l2_treasure_address = _l2_treasure_address;
         l1Token = _l1_token;
         l2Token = _l2_token;
     }
 
-    function RelayedToAnotherLayer(address _l2_bridge_address, uint256 _amount, uint32 _gas_limit) external returns(bool) {
-        if (_l2_bridge_address == address(0)) revert GoldenBridge__NotZeroAddressAllowed();
+    function RelayedToAnotherLayer(uint256 _amount, uint32 _gas_limit) external returns(bool) {
+        // if (_l2_bridge_address == address(0)) revert GoldenBridge__NotZeroAddressAllowed();
         if (_amount == 0) revert GoldenBridge__NotZeroAmountAllowed();
 
-        IL1StandardBridge(correspond_bridge_address).depositERC20To({
+        IL1StandardBridge(op_bridge_address).depositERC20To({
             _l1Token: l1Token,
             _l2Token: l2Token,
-            _to: _l2_bridge_address, // will be stored in the L2 Token treasury.
+            _to: l2_treasure_address, // will be stored in the L2 Token treasury.
             _amount: _amount,
             _minGasLimit: _gas_limit,
             _extraData: ""
         });
         emit GoldenBridgeL1__TokenBridgedToL2(msg.sender, l1Token, _amount);
 
-        IERC20(l1Token).transferFrom(msg.sender, correspond_bridge_address, _amount);
+        IERC20(l1Token).transferFrom(msg.sender, l2_treasure_address, _amount);
         emit GoldenBridgeL1__TokenTransferedToL2(msg.sender, l1Token, _amount);
         
         return true;
@@ -64,7 +64,7 @@ contract GoldenBridgeL1 {
     }
 
     function get_correspond_v2_bridge_address() external view returns(address) {
-        return correspond_bridge_address;
+        return op_bridge_address;
     }
 
     function get_l1_token_address() external view returns(address) {
@@ -78,13 +78,4 @@ contract GoldenBridgeL1 {
     function get_l2_treasure_address() external view returns(address) {
         return l2_treasure_address;
     }
-}
-
-contract L2Treasury {
-    address private immutable L1BridgeAddress;
-    constructor(address _l1BridgeAddress) {
-        L1BridgeAddress = _l1BridgeAddress;
-    }
-
-    
 }

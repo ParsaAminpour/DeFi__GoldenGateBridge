@@ -5,15 +5,15 @@ import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import {IERC165} from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
 import {IOptimismMintableERC20} from "./interfaces/IOptimismMintableERC20.sol";
 
-contract BossBridgeL2Token is IOptimismMintableERC20, ERC20 {
+contract GoldenBridgeTokenL2 is IOptimismMintableERC20, ERC20 {
     error BossBridgeL2Token__OnlyBridgeHasAccess();
     error BossBridgeL2Token__BossBridgeL2TokenCannotBeWithdrawn();
 
     /// @notice Address of the corresponding version of this token on the remote chain.
-    address public immutable REMOTE_TOKEN;
+    address private immutable REMOTE_TOKEN;
 
     /// @notice Address of the StandardBridge on this network.
-    address public immutable BRIDGE;
+    address private immutable BRIDGE;
 
     event BossBridgeL2Token__TokenMinted(address indexed account, uint256 amount);
     event BossBridgeL2Token__TokenBurned(address indexed account, uint256 amount);
@@ -61,13 +61,13 @@ contract BossBridgeL2Token is IOptimismMintableERC20, ERC20 {
 
     /// @custom:legacy
     /// @notice Legacy getter for REMOTE_TOKEN.
-    function remoteToken() public view returns (address) {
+    function remoteToken() external view returns (address) {
         return REMOTE_TOKEN;
     }
 
     /// @custom:legacy
     /// @notice Legacy getter for BRIDGE.
-    function bridge() public view returns (address) {
+    function bridge() external view returns (address) {
         return BRIDGE;
     }
 }
