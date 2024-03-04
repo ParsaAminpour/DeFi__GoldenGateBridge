@@ -12,11 +12,10 @@ import "@openzeppelin/contracts/access/Ownable.sol";
     that we want to bridge it over to L2.
  * @dev the Ownable won't deny the decentralization principles. Just for minting.
 */
-contract GoldenBridgeTokenL1 is ERC20, Ownable {
+contract TokenL1 is ERC20, Ownable {
     error GoldenBridgeTokenL1__amountShouldNotBeZero();
     error GoldenBridgeTokenL1__AddressCouldNotBeZero();
     error GoldenBridgeTokenL1__OnlyEquilibriumCoreCouldCall();
-
 
     // msg.sender is the EquilibriumCore contract address
     constructor() ERC20("GoldenBridgeToken", "GOLD") Ownable(msg.sender) {}

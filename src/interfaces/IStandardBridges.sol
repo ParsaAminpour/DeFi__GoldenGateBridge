@@ -13,12 +13,12 @@ interface IL1StandardBridge {
     ) external;
 
     function bridgeERC20To(
-        address local_token,
-        address remote_token,
-        address to,
-        uint256 amount,
-        uint32 min_gas_limit,
-        bytes calldata data
+        address _localToken,
+        address _remoteToken,
+        address _to,
+        uint256 _amount,
+        uint32 _minGasLimit,
+        bytes calldata _extraData
     ) external;
 }
 
