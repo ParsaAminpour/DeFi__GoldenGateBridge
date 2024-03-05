@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.20;
 
-import { ERC20 } from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
-import { IERC165 } from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
-import { ILegacyMintableERC20, IOptimismMintableERC20 } from "./interfaces/IOptimismMintableERC20.sol";
-import { Semver } from "./Semver.sol";
+import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+import {IERC165} from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
+import {ILegacyMintableERC20, IOptimismMintableERC20} from "./interfaces/IOptimismMintableERC20.sol";
+import {Semver} from "./Semver.sol";
 
 /// @title OptimismMintableERC20
 /// @author Parsa Aminpour
@@ -41,12 +41,7 @@ contract TokenL2 is IOptimismMintableERC20, ILegacyMintableERC20, ERC20, Semver 
     // _REMOTETOKEN: "<L1 ERC-20 address>"
     // _NAME:        "My Custom L2 Token"
     // _SYMBOL:      "MCL2T"
-    constructor(
-        address _bridge,
-        address _remoteToken,
-        string memory _name,
-        string memory _symbol
-    )
+    constructor(address _bridge, address _remoteToken, string memory _name, string memory _symbol)
         ERC20(_name, _symbol)
         Semver(1, 1, 0)
     {
@@ -57,10 +52,7 @@ contract TokenL2 is IOptimismMintableERC20, ILegacyMintableERC20, ERC20, Semver 
     /// @notice Allows the StandardBridge on this network to mint tokens.
     /// @param _to     Address to mint tokens to.
     /// @param _amount Amount of tokens to mint.
-    function mint(
-        address _to,
-        uint256 _amount
-    )
+    function mint(address _to, uint256 _amount)
         external
         virtual
         override(IOptimismMintableERC20, ILegacyMintableERC20)
@@ -73,10 +65,7 @@ contract TokenL2 is IOptimismMintableERC20, ILegacyMintableERC20, ERC20, Semver 
     /// @notice Allows the StandardBridge on this network to burn tokens.
     /// @param _from   Address to burn tokens from.
     /// @param _amount Amount of tokens to burn.
-    function burn(
-        address _from,
-        uint256 _amount
-    )
+    function burn(address _from, uint256 _amount)
         external
         virtual
         override(IOptimismMintableERC20, ILegacyMintableERC20)

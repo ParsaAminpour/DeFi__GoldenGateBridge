@@ -7,7 +7,6 @@ import {IERC20} from "@openzeppelin/contracts/interfaces/IERC20.sol";
 import {IL1StandardBridge} from "./interfaces/IStandardBridges.sol";
 import {IL2StandardBridge} from "./interfaces/IStandardBridges.sol";
 
-
 // This contract will deploy on OP layer2
 contract L2Vault {
     address private immutable L1BridgeAddress;
