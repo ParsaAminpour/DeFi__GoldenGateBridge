@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.20;
 
-interface IBossBridge {
+interface IGoldenBridge {
     /// @notice Sends ERC20 tokens to a receiver's address on the other chain. Note that if the
     ///         ERC20 token on the other chain does not recognize the local token as the correct
     ///         pair token, the ERC20 bridge will fail and the tokens will be returned to sender on
