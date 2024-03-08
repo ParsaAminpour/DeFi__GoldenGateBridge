@@ -1,0 +1,18 @@
+{
+  "name": "defi__goldengatebridge",
+  "version": "1.0.0",
+  "description": "### Build",
+  "main": "index.js",
+  "directories": {
+    "lib": "lib",
+    "test": "test"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "ParsaAminpour",
+  "license": "MIT",
+  "devDependencies": {
+    "@eth-optimism/contracts-bedrock": "^0.17.1"
+  }
+}

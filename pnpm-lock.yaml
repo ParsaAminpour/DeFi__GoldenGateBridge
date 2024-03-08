@@ -1,0 +1,17 @@
+lockfileVersion: '6.0'
+
+settings:
+  autoInstallPeers: true
+  excludeLinksFromLockfile: false
+
+devDependencies:
+  '@eth-optimism/contracts-bedrock':
+    specifier: ^0.17.1
+    version: 0.17.1
+
+packages:
+
+  /@eth-optimism/contracts-bedrock@0.17.1:
+    resolution: {integrity: sha512-Hc5peN5PM8kzl9dzqSD5jv6ED3QliO1DF0dXLRJxfrXR7/rmEeyuAYESUwUM0gdJZjkwRYiS5m230BI6bQmnlw==}
+    requiresBuild: true
+    dev: true

@@ -9,6 +9,7 @@ import {IL1StandardBridge} from "./interfaces/IStandardBridges.sol";
 import {IL2StandardBridge} from "./interfaces/IStandardBridges.sol";
 import {ERC165Checker} from "@openzeppelin/contracts/utils/introspection/ERC165Checker.sol";
 import {Address} from "@openzeppelin/contracts/utils/Address.sol";
+// import { L1CrossDomainMessenger } from "@eth-optimism/contracts/L1/L1CrossDomainMessenger.sol";
 
 /*
  * @author Parsa Aminpour
@@ -31,7 +32,7 @@ contract GoldenBridge {
 
     // These contract addresses have been deployed before.
     address private constant l1_standard_bridge = 0xFBb0621E0B23b5478B630BD55a5f21f67730B0F1;
-    GoldenBridge private immutable bridge_from_another_layer; // i.e pre-deployed bridge on OP
+    GoldenBridge private immutable ANOTHER_LAYER_BRIDGE; // i.e pre-deployed bridge on OP
     ICrossDomainMessenger private immutable CROSS_DOMAIN_MESSENGER;
 
     event GoldenBridge__TokenBridgedStarted(
@@ -40,14 +41,14 @@ contract GoldenBridge {
     event GoldenBridge__TokenBridgeEnd(address indexed sender, address indexed token_address, uint256 indexed amount);
 
     /// @param _messenger   Address of CrossDomainMessenger on this network.
-    /// @param _bridge_from_another_layer Address of the other StandardBridge contract.
-    constructor(address payable _messenger, address payable _bridge_from_another_layer) payable {
-        bridge_from_another_layer = GoldenBridge(_bridge_from_another_layer);
+    /// @param _ANOTHER_LAYER_BRIDGE Address of the other StandardBridge contract.
+    constructor(address payable _messenger, address payable _ANOTHER_LAYER_BRIDGE) payable {
+        ANOTHER_LAYER_BRIDGE = GoldenBridge(_ANOTHER_LAYER_BRIDGE);
         CROSS_DOMAIN_MESSENGER = ICrossDomainMessenger(_messenger);
     }
 
     modifier only_correspond_bridge() {
-        if (msg.sender != address(bridge_from_another_layer)) revert GoldenBridge__OnlyAnotherBridgeAddressCouldCall();
+        if (msg.sender != address(ANOTHER_LAYER_BRIDGE)) revert GoldenBridge__OnlyAnotherBridgeAddressCouldCall();
         _;
     }
 
@@ -61,7 +62,7 @@ contract GoldenBridge {
     /*
      * @dev Another bridge will call this function to stablish the mint process from another layer.
      * @dev If the _local_token was the OptimismMintableERC20 token, then if the correspond bridge call this function, that amount will be minted in did.
-        this means that we bridge an OP token to layer1 correspond token.
+        this means that we bridge an OP token to layer1 correspond token. (The process is vise versa than RelayedERC20ToAnotherLayer function)
         (_local_token -> OP token) => we want to bridge token from layer1 to layer2.
             |
             -> this will lock the layer1 ERC20 token to this contract and change the mapping state variable to manage the pair's funds.
@@ -89,32 +90,33 @@ contract GoldenBridge {
             if (correspond_token_address == address(0) || correspond_token_address != _remote_token) {
                 revert GoldenBridge__InvalidRemoteToken(_remote_token);
             }
-            IOptimismMintableERC20(_local_token).mint(_to, _amount);
+            IOptimismMintableERC20(_local_token).mint(_to, _amount); // _to is RelayedERC20ToAnotherLayer caller's address
         } else {
             // from leyer2 to layer1
             // the _local_token is on the Ethereum network (which basically is remote token on this layer)
-            IERC20(_local_token).safeTransfer(_to, _amount); // transfer asset locked to the native owner.
             total_balance_per_pair[_local_token][_remote_token] -= _amount;
             map_amount_of_token_bridged_per_user[_to] -= _amount;
+            IERC20(_local_token).safeTransfer(_to, _amount); // transfer asset locked to the native owner.
         }
         emit GoldenBridge__TokenBridgeEnd(_to, _local_token, _amount);
     }
 
     /*
      * @dev To bridge the _local_token from a layer to another layer (not necessarily the ETH network).
-     * @dev Ultimately the CROSS_DOMAIN_MESSENGER
+     * @dev Ultimately the CROSS_DOMAIN_MESSENGER will mint the correspond layer's token.
+     * @dev in sendMessage section the correspond layer _local_token is the _remote_token from this    layer, we pass the _remote_token to that function as _local_token brcause of that.
      * @param _local_token is the token on the current layer that we want to relayed this over to layer2.
      * @param _amount the amount of token on L1 token that we want to relayed over to L2, this amount will be stored in the state variable (mappings).
      * @param minGasLimit arbitary gas limit for this transaction.
      * @param _extraData arbitary data for sending the message (could be blank as "" is).
     */
-    function RelayedToAnotherLayer(
+    function RelayedERC20ToAnotherLayer(
         address _local_token,
         address _remote_token,
         // address _to, -> msg.sender
         uint256 _amount,
-        uint32 minGasLimit,
-        bytes calldata _extraData
+        uint32 minGasLimit
+        // bytes calldata _extraData
     ) external {
         // check the the _token_on_l1 status to see which chain it is blongs for.
         if (_isOpTokenAddressValidate(_local_token)) {
@@ -126,29 +128,34 @@ contract GoldenBridge {
 
             IOptimismMintableERC20(_local_token).burn(msg.sender, _amount);
         } else {
-            // the _local_token is on the Ethereum network
-            IERC20(_local_token).safeTransferFrom(msg.sender, address(this), _amount);
+            // the _local_token is on the Ethereum network (Simple ERC20 token)
             total_balance_per_pair[_local_token][_remote_token] += _amount;
             map_amount_of_token_bridged_per_user[msg.sender] += _amount;
+            IERC20(_local_token).safeTransferFrom(msg.sender, address(this), _amount);
         }
 
         emit GoldenBridge__TokenBridgedStarted(msg.sender, _local_token, _amount);
 
         // transfer the L1 token to the corresponding layer vault.
+        // sendMessage(address target, bytes calldata message, uint32 gasLimit);
         CROSS_DOMAIN_MESSENGER.sendMessage(
-            address(bridge_from_another_layer),
+            address(ANOTHER_LAYER_BRIDGE),
             abi.encodeWithSelector(
                 this.ERC20BridgeProcess.selector, // target, that only another bridge could call this.
                 _remote_token,
                 _local_token,
                 msg.sender,
-                _amount,
-                _extraData
+                _amount       
             ),
             minGasLimit
         );
     }
 
+    function RelayerETHtoAnotherLayer() external {}
+
+    /*.*.*.*.*.*.*.*.*.**.*.*.*.*.*.*.*.*.*
+    /         Internal Functions          /
+    *.*.*.*.*.*.*.*.*.**.*.*.*.*.*.*.*.*.*/
     function _isOpTokenAddressValidate(address op_address) internal view returns (bool) {
         if (
             ERC165Checker.supportsInterface(op_address, type(ILegacyMintableERC20).interfaceId)
@@ -197,7 +204,7 @@ contract GoldenBridge {
     }
 
     function get_correspond_v2_bridge_address() external view returns (address) {
-        return address(bridge_from_another_layer);
+        return address(ANOTHER_LAYER_BRIDGE);
     }
 
     function get_messenger_address() external view returns (address) {

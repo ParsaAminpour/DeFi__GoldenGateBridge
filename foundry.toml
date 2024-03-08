@@ -5,7 +5,8 @@ solc_version = "0.8.20"
 libs = ["lib"]
 remappings = ['@chainlink/contracts/=lib/chainlink-brownie-contracts/contracts/', 
               '@openzeppelin/contracts=lib/openzeppelin-contracts/contracts',
-              '@openzeppelin/contracts-upgradeable=lib/openzeppelin-contracts-upgradeable/contracts',]
+              '@openzeppelin/contracts-upgradeable=lib/openzeppelin-contracts-upgradeable/contracts',
+              '@eth-optimism/contracts=node_modules/@eth-optimism/contracts-bedrock/src',]
 
 gas_reports = ["EquilibriumCore"]
 # gas_reports_ignore = ["InstanceEquilibriumCore"]
