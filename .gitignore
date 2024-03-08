@@ -10,6 +10,7 @@ out/
 # Docs
 docs/
 analyze/
+node-modules/
 
 # Dotenv file
 .env
