@@ -14,7 +14,7 @@ contract DeployTokenOnL2Script is Script {
     uint256 public constant AMOUNT_TO_BRIDGE = 10e18;
     // DeployTokenOnL1Script public l1_token = new DeployTokenOnL1Script();
     // pre-deployed L1 token
-    address l1_token_address = 0x26f76e57B14D591F8b6d0Bb9b00C0c125b487D25;
+    address public constant l1_token_address = 0x84D1B79c9002bC8231981a15b4087EeC8Ed90EF5;
 
     function run() external returns (TokenL2) {
         uint256 private_key = vm.envUint("PRIVATE_KEY");
@@ -28,6 +28,8 @@ contract DeployTokenOnL2Script is Script {
 
         vm.startPrank(bridge_address);
         l2_token.mint(owner, AMOUNT_TO_MINT);
+        console.log("The owner l2 token balance: ", l2_token.balanceOf(owner));
+
         vm.stopPrank();
 
         return l2_token;
@@ -47,6 +49,7 @@ contract DeployTokenOnL1Script is Script {
         console.log(address(l1_token));
 
         l1_token.mint(owner, AMOUNT_TO_MINT);
+        console.log("The owner balance on L1: ", l1_token.balanceOf(owner));
         vm.stopBroadcast();
 
         return l1_token;

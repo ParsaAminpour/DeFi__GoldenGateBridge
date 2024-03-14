@@ -1,14 +1,14 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.20;
 
-import {ILegacyMintableERC20, IOptimismMintableERC20} from "./interfaces/IOptimismMintableERC20.sol";
-import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-import {IERC20} from "@openzeppelin/contracts/interfaces/IERC20.sol";
+import {  ILegacyMintableERC20, IOptimismMintableERC20 } from "./interfaces/IOptimismMintableERC20.sol";
+import { SafeERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import { IERC20 } from "@openzeppelin/contracts/interfaces/IERC20.sol";
 // contract source of code: https://github.com/ethereum-optimism/optimism/blob/65ec61dde94ffa93342728d324fecf474d228e1f/packages/contracts-bedrock/contracts/L1/L1StandardBridge.sol#L196
-import {IL1StandardBridge} from "./interfaces/IStandardBridges.sol";
-import {IL2StandardBridge} from "./interfaces/IStandardBridges.sol";
-import {ERC165Checker} from "@openzeppelin/contracts/utils/introspection/ERC165Checker.sol";
-import {Address} from "@openzeppelin/contracts/utils/Address.sol";
+import { IL1StandardBridge } from "./interfaces/IStandardBridges.sol";
+import { IL2StandardBridge } from "./interfaces/IStandardBridges.sol";
+import { ERC165Checker } from "@openzeppelin/contracts/utils/introspection/ERC165Checker.sol";
+import { Address } from "@openzeppelin/contracts/utils/Address.sol";
 // import { L1CrossDomainMessenger } from "@eth-optimism/contracts/L1/L1CrossDomainMessenger.sol";
 
 /*
@@ -26,25 +26,28 @@ contract GoldenBridge {
     error GoldenBridge__OnlyAnotherBridgeAddressCouldCall();
     error GoldenBridge__NotZeroAddressAllowed();
     error GoldenBridge__NotZeroAmountAllowed();
+    error GoldenBridge__AnotherBridgeAddressCouldChangeOnce();
 
     mapping(address first_pair => mapping(address second_pair => uint256 amount)) private total_balance_per_pair;
     mapping(address bridge_token_owner => uint256 _balance) private map_amount_of_token_bridged_per_user;
 
     // These contract addresses have been deployed before.
     address private constant l1_standard_bridge = 0xFBb0621E0B23b5478B630BD55a5f21f67730B0F1;
-    GoldenBridge private immutable ANOTHER_LAYER_BRIDGE; // i.e pre-deployed bridge on OP
+    GoldenBridge private ANOTHER_LAYER_BRIDGE; // i.e pre-deployed bridge on OP
     ICrossDomainMessenger private immutable CROSS_DOMAIN_MESSENGER;
+    bool private another_bridge_address_change_once;
 
     event GoldenBridge__TokenBridgedStarted(
         address indexed sender, address indexed token_address, uint256 indexed amount
     );
     event GoldenBridge__TokenBridgeEnd(address indexed sender, address indexed token_address, uint256 indexed amount);
 
-    /// @param _messenger   Address of CrossDomainMessenger on this network.
+    /// @param _messenger  Address of CrossDomainMessenger on this network.
     /// @param _ANOTHER_LAYER_BRIDGE Address of the other StandardBridge contract.
     constructor(address payable _messenger, address payable _ANOTHER_LAYER_BRIDGE) payable {
         ANOTHER_LAYER_BRIDGE = GoldenBridge(_ANOTHER_LAYER_BRIDGE);
         CROSS_DOMAIN_MESSENGER = ICrossDomainMessenger(_messenger);
+        another_bridge_address_change_once = false;
     }
 
     modifier only_correspond_bridge() {
@@ -57,6 +60,12 @@ contract GoldenBridge {
             revert GoldenBridge__OnlyTheMainMessageSenderCouldCallThisFunction(_sender_prank);
         }
         _;
+    }
+
+    modifier only_change_once() {
+        if (another_bridge_address_change_once) revert GoldenBridge__AnotherBridgeAddressCouldChangeOnce();
+        _;
+        another_bridge_address_change_once = true;
     }
 
     /*
@@ -152,6 +161,14 @@ contract GoldenBridge {
     }
 
     function RelayerETHtoAnotherLayer() external {}
+
+
+    function change_correspond_bridge_address (address payable _valid_address) external only_change_once {
+        require(_valid_address != address(0), "Invalid Address");
+        GoldenBridge another_bridge = GoldenBridge(_valid_address);
+        ANOTHER_LAYER_BRIDGE = another_bridge;
+    }
+
 
     /*.*.*.*.*.*.*.*.*.**.*.*.*.*.*.*.*.*.*
     /         Internal Functions          /
