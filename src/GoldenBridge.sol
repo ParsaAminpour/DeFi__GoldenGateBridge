@@ -9,6 +9,7 @@ import { IL1StandardBridge } from "./interfaces/IStandardBridges.sol";
 import { IL2StandardBridge } from "./interfaces/IStandardBridges.sol";
 import { ERC165Checker } from "@openzeppelin/contracts/utils/introspection/ERC165Checker.sol";
 import { Address } from "@openzeppelin/contracts/utils/Address.sol";
+import { SafeCall } from "./SafeCall.sol";
 // import { L1CrossDomainMessenger } from "@eth-optimism/contracts/L1/L1CrossDomainMessenger.sol";
 
 /*
@@ -27,6 +28,9 @@ contract GoldenBridge {
     error GoldenBridge__NotZeroAddressAllowed();
     error GoldenBridge__NotZeroAmountAllowed();
     error GoldenBridge__AnotherBridgeAddressCouldChangeOnce();
+    error GoldenBridge__CannotSendToInternalContracts();
+    error GoldenBridge__NeedsSufficientETH();
+    error GoldenBridge__BridgeFailed();
 
     mapping(address first_pair => mapping(address second_pair => uint256 amount)) private total_balance_per_pair;
     mapping(address bridge_token_owner => uint256 _balance) private map_amount_of_token_bridged_per_user;
@@ -41,6 +45,7 @@ contract GoldenBridge {
         address indexed sender, address indexed token_address, uint256 indexed amount
     );
     event GoldenBridge__TokenBridgeEnd(address indexed sender, address indexed token_address, uint256 indexed amount);
+    event GoldenBridge__ETHBridgeStarted(address indexed from, address indexed to, uint256 indexed amount);
 
     /// @param _messenger  Address of CrossDomainMessenger on this network.
     /// @param _ANOTHER_LAYER_BRIDGE Address of the other StandardBridge contract.
@@ -113,7 +118,7 @@ contract GoldenBridge {
     /*
      * @dev To bridge the _local_token from a layer to another layer (not necessarily the ETH network).
      * @dev Ultimately the CROSS_DOMAIN_MESSENGER will mint the correspond layer's token.
-     * @dev in sendMessage section the correspond layer _local_token is the _remote_token from this    layer, we pass the _remote_token to that function as _local_token brcause of that.
+     * @dev in sendMessage section the correspond layer _local_token is the _remote_token from this layer, we pass the _remote_token to that function as _local_token brcause of that.
      * @param _local_token is the token on the current layer that we want to relayed this over to layer2.
      * @param _amount the amount of token on L1 token that we want to relayed over to L2, this amount will be stored in the state variable (mappings).
      * @param minGasLimit arbitary gas limit for this transaction.
@@ -160,10 +165,49 @@ contract GoldenBridge {
         );
     }
 
-    function RelayerETHtoAnotherLayer() external {}
+    /*
+    * @notice this function only could be trigged by the correspond GoldenBridge contract on remote chain.
+    * @param _to explained on RelayedETHtoAnotherLayer function.
+    * @param _amount explained on RelayedETHtoAnotherLayer function.
+    * NOTE: In this contract we don't consider the calldata message. keep it simple.
+    */
+    function ETHBridgeProcess(address _to, uint256 _amount, uint32 _minGasLimit) external payable only_correspond_bridge() {
+        bool success = SafeCall.callWithMinGas(_to, _minGasLimit, _amount, bytes(""));
+        if (!success) revert GoldenBridge__BridgeFailed();
+    }
+
+    /*
+    * @notice this function bridge ETH available on this network to the another bridge network.
+    * @param _to the address of receiver on correspond network.
+    * @param _amount the amount that we want to send which should be as same as msg.value.
+    * @param _minGasLimit the minimum gas that bridge could handle the transaction.
+    */
+    function RelayedETHtoAnotherLayer(address _to, uint256 _amount, uint32 _minGasLimit) external payable {
+        if (_to == address(this) || _to == address(ANOTHER_LAYER_BRIDGE)) revert GoldenBridge__CannotSendToInternalContracts();
+        if (_to == address(0)) revert GoldenBridge__NotZeroAddressAllowed();
+        if (_amount != msg.value) revert GoldenBridge__NeedsSufficientETH();
+        if (msg.value == 0) revert GoldenBridge__NotZeroAmountAllowed();
+
+        emit GoldenBridge__ETHBridgeStarted(msg.sender, _to, _amount);
+
+        // @audit-info if the second parameter's length  (bytes message) be too long, the gas will be on fire.
+        CROSS_DOMAIN_MESSENGER.sendMessage{ value:msg.value }(
+            address(ANOTHER_LAYER_BRIDGE),
+            abi.encodeWithSelector(
+                this.ETHBridgeProcess.selector,
+                msg.sender,
+                _to,
+                msg.value,
+            _minGasLimit),
+            _minGasLimit);
+    }
 
 
-    function change_correspond_bridge_address (address payable _valid_address) external only_change_once {
+    /*
+    * @notie this function will be called only once at the deployement section immediately after deployement.
+    * @param _valid_address is the valid correspond bridge contract address. (determined in the deployement script)
+    */
+    function change_correspond_bridge_address(address payable _valid_address) external only_change_once {
         require(_valid_address != address(0), "Invalid Address");
         GoldenBridge another_bridge = GoldenBridge(_valid_address);
         ANOTHER_LAYER_BRIDGE = another_bridge;
@@ -231,5 +275,5 @@ contract GoldenBridge {
 
 interface ICrossDomainMessenger {
     function xDomainMessageSender() external view returns (address);
-    function sendMessage(address target, bytes calldata message, uint32 gasLimit) external;
+    function sendMessage(address target, bytes calldata message, uint32 gasLimit) external payable;
 }
