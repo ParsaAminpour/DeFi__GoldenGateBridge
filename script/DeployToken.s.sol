@@ -23,7 +23,6 @@ contract DeployTokenOnL2Script is Script {
         vm.startBroadcast(private_key);
         vm.chainId(11155420); // on OP sepolia
         TokenL2 l2_token = new TokenL2(bridge_address, l1_token_address, "L2Token", "L2");
-        console.log("The L2 Token address is: ", address(l2_token));
         vm.stopBroadcast();
 
         vm.startPrank(bridge_address);
@@ -46,7 +45,6 @@ contract DeployTokenOnL1Script is Script {
         vm.startBroadcast(private_key);
         vm.chainId(11155111);
         TokenL1 l1_token = new TokenL1();
-        console.log(address(l1_token));
 
         l1_token.mint(owner, AMOUNT_TO_MINT);
         console.log("The owner balance on L1: ", l1_token.balanceOf(owner));

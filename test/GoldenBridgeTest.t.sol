@@ -5,7 +5,7 @@ import { Test } from "forge-std/Test.sol";
 import { TokenL2 } from "../src/TokenL2.sol";
 import { TokenL1 } from "../src/TokenL1.sol";
 import { IERC20 } from "@openzeppelin/contracts/interfaces/IERC20.sol";
-import { DeployTokenOnL2Script } from "../script/DeployToken.s.sol";
+import { DeployTokenOnL1Script, DeployTokenOnL2Script } from "../script/DeployToken.s.sol";
 import { console } from "forge-std/console.sol";
 import { GoldenBridge } from "../src/GoldenBridge.sol";
 
@@ -15,16 +15,18 @@ contract GoldenBridgeTest is Test {
     uint256 public constant AMOUNT_TO_BRIDGE = 10e18;
 
     TokenL1 public l1_token;
-    address public constant l2_token = 0x26f76e57B14D591F8b6d0Bb9b00C0c125b487D25;
-    DeployTokenOnL2Script public deployer;
+    TokenL2 public l2_token;
     GoldenBridge public l1_bridge;
 
     function setUp() public {
-        l1_token = new TokenL1();
-        // l1_bridge = new GoldenBridge(bridge_address);
+        
+        DeployTokenOnL1Script l1_token_deployer = new DeployTokenOnL1Script();
+        DeployTokenOnL2Script l2_token_deployer = new DeployTokenOnL2Script();
+        l1_token = l1_token_deployer.run();
+        l2_token = l2_token_deployer.run();
 
-        console.log(address(l1_token));
-        // console.log(address(l2_token));
+        console.log("L1 token address: ", address(l1_token));
+        console.log("L2 token address: ", address(l2_token));
     }
 
     function testSetup() public {
