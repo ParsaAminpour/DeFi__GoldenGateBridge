@@ -185,8 +185,8 @@ contract GoldenBridge {
     function RelayedETHtoAnotherLayer(address _to, uint256 _amount, uint32 _minGasLimit) external payable {
         if (_to == address(this) || _to == address(ANOTHER_LAYER_BRIDGE)) revert GoldenBridge__CannotSendToInternalContracts();
         if (_to == address(0)) revert GoldenBridge__NotZeroAddressAllowed();
-        if (_amount != msg.value) revert GoldenBridge__NeedsSufficientETH();
         if (msg.value == 0) revert GoldenBridge__NotZeroAmountAllowed();
+        if (_amount != msg.value) revert GoldenBridge__NeedsSufficientETH();
 
         emit GoldenBridge__ETHBridgeStarted(msg.sender, _to, _amount);
 
